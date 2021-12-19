@@ -5,6 +5,7 @@ const glob = require("glob")
 
 const ForkTsCheckerWebpackPlugin = require("fork-ts-checker-webpack-plugin")
 const PurgecssPlugin = require("purgecss-webpack-plugin")
+const SpriteLoaderPlugin = require("svg-sprite-loader/plugin")
 const MiniCssExtractPlugin = require("mini-css-extract-plugin")
 const BundleAnalyzerPlugin = require("webpack-bundle-analyzer").BundleAnalyzerPlugin
 const publicFolder = path.resolve(__dirname, "public")
@@ -36,6 +37,7 @@ const plugins = [
     defaultExtractor: (content) => content.match(/[^<>"'`\s]*[^<>"'`\s:]/g) || [],
     safelist: [/--/, /__/, /data-/],
   }),
+  new SpriteLoaderPlugin({ plainSprite: true }),
 ]
 
 // On Development Mode, we allow Assets to be up to 14 times bigger than on Production Mode
@@ -85,7 +87,14 @@ module.exports = {
       {
         test: /\.svg$/,
         include: publicFolder,
-        use: ["svg-sprite-loader", "svgo-loader"],
+        loader: "svg-sprite-loader",
+        options: {
+          esModule: false,
+          extract: true,
+          outputPath: "icons/",
+          spriteFilename: "sprite.[hash].svg",
+          publicPath: "/assets/icons/",
+        },
       },
     ],
   },

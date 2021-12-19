@@ -1,7 +1,5 @@
 @import "~@fider/assets/styles/variables.scss";
 
-$c-modal-dimmer-padding: 1em;
-
 .c-modal-dimmer {
   position: fixed;
   top: 0;
@@ -10,12 +8,12 @@ $c-modal-dimmer-padding: 1em;
   height: 100%;
   text-align: center;
   vertical-align: middle;
-  padding: $c-modal-dimmer-padding;
+  padding: 1em;
   z-index: 100;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
-  overflow-y: auto;
+  align-items: center;
+  overflow-y: hidden;
   animation: dimmerFadeIn 0.5s;
   background-color: rgba(get("colors.gray.800"), 0.7);
 
@@ -43,12 +41,6 @@ $c-modal-dimmer-padding: 1em;
     transform: scale(1);
     opacity: 1;
   }
-}
-
-.c-modal-scroller {
-  min-height: calc(100vh - #{2 * $c-modal-dimmer-padding});
-  display: flex;
-  align-items: center;
 }
 
 .c-modal-window {

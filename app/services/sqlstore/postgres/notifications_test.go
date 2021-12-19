@@ -178,7 +178,6 @@ func TestNotificationStorage_PurgeExpiredNotifications(t *testing.T) {
 	trx.MustCommit()
 
 	purgeCommand := &cmd.PurgeExpiredNotifications{}
-	err = bus.Dispatch(context.Background(), purgeCommand)
-	Expect(err).IsNil()
+	bus.Publish(context.Background(), purgeCommand)
 	Expect(purgeCommand.NumOfDeletedNotifications).Equals(2)
 }

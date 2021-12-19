@@ -18,8 +18,7 @@ func Maintenance() web.MiddlewareFunc {
 
 			c.Response.Header().Set("Retry-After", "3600")
 
-			return c.Page(http.StatusServiceUnavailable, web.Props{
-				Page:        "Error/Maintenance.page",
+			return c.Render(http.StatusServiceUnavailable, "maintenance.html", web.Props{
 				Title:       "UNDER MAINTENANCE",
 				Description: env.Config.Maintenance.Message,
 				Data: web.Map{

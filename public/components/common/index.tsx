@@ -29,7 +29,6 @@ export * from "./Toggle"
 export * from "./PoweredByFider"
 export * from "./PageTitle"
 export * from "./Dropdown"
-export * from "./Money"
 
 import Textarea from "react-textarea-autosize"
 export { Textarea }

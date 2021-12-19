@@ -43,7 +43,7 @@ func (t *dbTenant) toModel() *entity.Tenant {
 		CNAME:              t.CNAME,
 		Invitation:         t.Invitation,
 		WelcomeMessage:     t.WelcomeMessage,
-		Status:             enum.TenantStatus(t.Status),
+		Status:             t.Status,
 		Locale:             t.Locale,
 		IsPrivate:          t.IsPrivate,
 		LogoBlobKey:        t.LogoBlobKey,
@@ -215,7 +215,7 @@ func saveVerificationKey(ctx context.Context, c *cmd.SaveVerificationKey) error 
 
 func setKeyAsVerified(ctx context.Context, c *cmd.SetKeyAsVerified) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		query := "UPDATE email_verifications SET verified_at = $1 WHERE tenant_id = $2 AND key = $3 AND verified_at IS NULL"
+		query := "UPDATE email_verifications SET verified_at = $1 WHERE tenant_id = $2 AND key = $3"
 		_, err := trx.Execute(query, time.Now(), tenant.ID, c.Key)
 		if err != nil {
 			return errors.Wrap(err, "failed to update verified date of email verification request")
@@ -235,16 +235,6 @@ func createTenant(ctx context.Context, c *cmd.CreateTenant) error {
 			 RETURNING id`, c.Name, c.Subdomain, now, c.Status, env.Config.Locale)
 		if err != nil {
 			return err
-		}
-
-		if env.IsBillingEnabled() {
-			trialEndsAt := time.Now().AddDate(0, 0, 15) // 15 days
-			_, err := trx.Execute(
-				`INSERT INTO tenants_billing (tenant_id, trial_ends_at, status, paddle_subscription_id, paddle_plan_id) 
-				 VALUES ($1, $2, $3, '', '')`, id, trialEndsAt, enum.BillingTrial)
-			if err != nil {
-				return err
-			}
 		}
 
 		byDomain := &query.GetTenantByDomain{Domain: c.Subdomain}

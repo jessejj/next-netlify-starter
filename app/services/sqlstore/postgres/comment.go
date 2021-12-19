@@ -47,6 +47,10 @@ func addNewComment(ctx context.Context, c *cmd.AddNewComment) error {
 			return errors.Wrap(err, "failed add new comment")
 		}
 
+		if err := internalAddSubscriber(trx, c.Post, tenant, user, false); err != nil {
+			return err
+		}
+
 		q := &query.GetCommentByID{CommentID: id}
 		if err := getCommentByID(ctx, q); err != nil {
 			return err

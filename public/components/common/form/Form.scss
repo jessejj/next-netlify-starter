@@ -12,9 +12,5 @@
 
   &:last-child {
     margin-bottom: 0;
-
-    .flex-x > & {
-      margin-bottom: spacing(2);
-    }
   }
 }

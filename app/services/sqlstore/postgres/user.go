@@ -38,12 +38,7 @@ func (u *dbUser) toModel(ctx context.Context) *entity.User {
 		return nil
 	}
 
-	avatarURL := ""
 	avatarType := enum.AvatarType(u.AvatarType.Int64)
-	if u.AvatarType.Valid {
-		avatarURL = buildAvatarURL(ctx, avatarType, int(u.ID.Int64), u.Name.String, u.AvatarBlobKey.String)
-	}
-
 	user := &entity.User{
 		ID:            int(u.ID.Int64),
 		Name:          u.Name.String,
@@ -54,7 +49,7 @@ func (u *dbUser) toModel(ctx context.Context) *entity.User {
 		Status:        enum.UserStatus(u.Status.Int64),
 		AvatarType:    avatarType,
 		AvatarBlobKey: u.AvatarBlobKey.String,
-		AvatarURL:     avatarURL,
+		AvatarURL:     buildAvatarURL(ctx, avatarType, int(u.ID.Int64), u.Name.String, u.AvatarBlobKey.String),
 	}
 
 	for i, p := range u.Providers {
@@ -219,7 +214,7 @@ func changeUserRole(ctx context.Context, c *cmd.ChangeUserRole) error {
 
 func changeUserEmail(ctx context.Context, c *cmd.ChangeUserEmail) error {
 	return using(ctx, func(trx *dbx.Trx, tenant *entity.Tenant, user *entity.User) error {
-		cmd := "UPDATE users SET email = $3, email_supressed_at = NULL WHERE id = $1 AND tenant_id = $2"
+		cmd := "UPDATE users SET email = $3 WHERE id = $1 AND tenant_id = $2"
 		_, err := trx.Execute(cmd, c.UserID, tenant.ID, strings.ToLower(c.Email))
 		if err != nil {
 			return errors.Wrap(err, "failed to update user's email")

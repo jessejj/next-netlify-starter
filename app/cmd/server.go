@@ -7,7 +7,7 @@ import (
 	"path"
 	"syscall"
 
-	"github.com/getfider/fider/app/jobs"
+	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/dto"
 	"github.com/getfider/fider/app/models/query"
 	"github.com/getfider/fider/app/pkg/bus"
@@ -15,13 +15,10 @@ import (
 	"github.com/getfider/fider/app/pkg/errors"
 	"github.com/getfider/fider/app/pkg/log"
 	"github.com/getfider/fider/app/pkg/web"
-	"github.com/robfig/cron"
 
-	_ "github.com/getfider/fider/app/services/billing/paddle"
 	_ "github.com/getfider/fider/app/services/blob/fs"
 	_ "github.com/getfider/fider/app/services/blob/s3"
 	_ "github.com/getfider/fider/app/services/blob/sql"
-	_ "github.com/getfider/fider/app/services/email/awsses"
 	_ "github.com/getfider/fider/app/services/email/mailgun"
 	_ "github.com/getfider/fider/app/services/email/smtp"
 	_ "github.com/getfider/fider/app/services/httpclient"
@@ -30,7 +27,6 @@ import (
 	_ "github.com/getfider/fider/app/services/log/sql"
 	_ "github.com/getfider/fider/app/services/oauth"
 	_ "github.com/getfider/fider/app/services/sqlstore/postgres"
-	_ "github.com/getfider/fider/app/services/webhook"
 )
 
 //RunServer starts the Fider Server
@@ -45,33 +41,13 @@ func RunServer() int {
 		})
 	}
 
+	bus.Publish(ctx, &cmd.PurgeExpiredNotifications{})
 	copyEtcFiles(ctx)
-	startJobs(ctx)
 
 	e := routes(web.New())
+
 	go e.Start(":" + env.Config.Port)
 	return listenSignals(e)
-}
-
-// Starts all scheduled jobs
-func startJobs(ctx context.Context) {
-	c := cron.New()
-	_ = c.AddJob(jobs.NewJob(ctx, "PurgeExpiredNotificationsJob", jobs.PurgeExpiredNotificationsJobHandler{}))
-	_ = c.AddJob(jobs.NewJob(ctx, "EmailSupressionJob", jobs.EmailSupressionJobHandler{}))
-
-	if env.IsBillingEnabled() {
-		_ = c.AddJob(jobs.NewJob(ctx, "LockExpiredTenantsJob", jobs.LockExpiredTenantsJobHandler{}))
-		_ = c.AddJob(jobs.NewJob(ctx, "TrialReminder7DaysJob", jobs.TrialReminderJobHandler{
-			Days:         7,
-			TemplateName: "trial_7days",
-		}))
-		_ = c.AddJob(jobs.NewJob(ctx, "TrialReminder1DayJob", jobs.TrialReminderJobHandler{
-			Days:         1,
-			TemplateName: "trial_1day",
-		}))
-	}
-
-	c.Start()
 }
 
 // on startup, copy all etc/ files from configured blob storage into local etc/ folder

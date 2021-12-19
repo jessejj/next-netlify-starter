@@ -16,7 +16,7 @@ import (
 var (
 	// these values are replaced during CI build
 	buildnumber = ""
-	version     = "0.20.0-dev"
+	version     = "0.19.1"
 )
 
 func Version() string {
@@ -40,14 +40,7 @@ type config struct {
 	HostDomain string `env:"HOST_DOMAIN,required"`
 	Locale     string `env:"LOCALE,default=en"`
 	JWTSecret  string `env:"JWT_SECRET,required"`
-	Paddle     struct {
-		IsSandbox      bool   `env:"PADDLE_SANDBOX,default=false"`
-		VendorID       string `env:"PADDLE_VENDOR_ID"`
-		VendorAuthCode string `env:"PADDLE_VENDOR_AUTHCODE"`
-		PlanID         string `env:"PADDLE_PLAN_ID"`
-		PublicKey      string `env:"PADDLE_PUBLIC_KEY"`
-	}
-	Metrics struct {
+	Metrics    struct {
 		Enabled bool   `env:"METRICS_ENABLED,default=false"`
 		Port    string `env:"METRICS_PORT,default=4000"`
 	}
@@ -82,19 +75,13 @@ type config struct {
 		}
 	}
 	Email struct {
-		Type      string `env:"EMAIL"` // possible values: smtp, mailgun, awsses
 		NoReply   string `env:"EMAIL_NOREPLY,required"`
 		Allowlist string `env:"EMAIL_ALLOWLIST"`
 		Blocklist string `env:"EMAIL_BLOCKLIST"`
-		AWSSES    struct {
-			Region          string `env:"EMAIL_AWSSES_REGION"`
-			AccessKeyID     string `env:"EMAIL_AWSSES_ACCESS_KEY_ID"`
-			SecretAccessKey string `env:"EMAIL_AWSSES_SECRET_ACCESS_KEY"`
-		}
-		Mailgun struct {
+		Mailgun   struct {
 			APIKey string `env:"EMAIL_MAILGUN_API"`
 			Domain string `env:"EMAIL_MAILGUN_DOMAIN"`
-			Region string `env:"EMAIL_MAILGUN_REGION,default=US"` // possible values: US or EU
+			Region string `env:"EMAIL_MAILGUN_REGION,default=US"`
 		}
 		SMTP struct {
 			Host           string `env:"EMAIL_SMTP_HOST"`
@@ -105,7 +92,7 @@ type config struct {
 		}
 	}
 	BlobStorage struct {
-		Type string `env:"BLOB_STORAGE,default=sql"` // possible values: sql, fs or s3
+		Type string `env:"BLOB_STORAGE,default=sql"`
 		S3   struct {
 			EndpointURL     string `env:"BLOB_STORAGE_S3_ENDPOINT_URL"`
 			Region          string `env:"BLOB_STORAGE_S3_REGION"`
@@ -140,31 +127,14 @@ func Reload() {
 		panic(errors.Wrap(err, "failed to parse environment variables"))
 	}
 
-	// Email Type can be inferred if absense
-	if Config.Email.Type == "" {
-		if Config.Email.Mailgun.APIKey != "" {
-			Config.Email.Type = "mailgun"
-		} else if Config.Email.AWSSES.AccessKeyID != "" {
-			Config.Email.Type = "awsses"
-		} else {
-			Config.Email.Type = "smtp"
-		}
-	}
-
-	emailType := Config.Email.Type
-	if emailType == "mailgun" {
-		mustBeSet("EMAIL_MAILGUN_API")
+	if Config.Email.Mailgun.APIKey != "" {
 		mustBeSet("EMAIL_MAILGUN_DOMAIN")
-	} else if emailType == "awsses" {
-		mustBeSet("EMAIL_AWSSES_REGION")
-		mustBeSet("EMAIL_AWSSES_ACCESS_KEY_ID")
-		mustBeSet("EMAIL_AWSSES_SECRET_ACCESS_KEY")
-	} else if emailType == "smtp" {
+	} else {
 		mustBeSet("EMAIL_SMTP_HOST")
 		mustBeSet("EMAIL_SMTP_PORT")
 	}
 
-	bsType := Config.BlobStorage.Type
+	bsType := strings.ToLower(Config.BlobStorage.Type)
 	if bsType == "s3" {
 		mustBeSet("BLOB_STORAGE_S3_BUCKET")
 	} else if bsType == "fs" {
@@ -203,11 +173,6 @@ func MultiTenantDomain() string {
 		return "." + Config.HostDomain
 	}
 	return ""
-}
-
-// IsBillingEnabled returns true if Paddle is configured
-func IsBillingEnabled() bool {
-	return Config.Paddle.VendorID != "" && Config.Paddle.VendorAuthCode != ""
 }
 
 // IsProduction returns true on Fider production environment

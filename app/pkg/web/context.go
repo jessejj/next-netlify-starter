@@ -38,7 +38,7 @@ type StringMap map[string]string
 type Props struct {
 	Title       string
 	Description string
-	Page        string
+	ChunkName   string
 	Data        Map
 }
 
@@ -212,49 +212,25 @@ func (c *Context) IsAjax() bool {
 	return strings.Contains(accept, JSONContentType) || strings.Contains(contentType, JSONContentType)
 }
 
-//Unauthorized returns a 401 error response
+//Unauthorized returns a 403 response
 func (c *Context) Unauthorized() error {
-	if c.IsAjax() {
-		return c.JSON(http.StatusUnauthorized, Map{})
-	}
-
-	return c.Page(http.StatusUnauthorized, Props{
-		Page:        "Error/Error401.page",
-		Title:       "Unauthorized",
-		Description: "You need to be authenticated to access this page.",
+	return c.Render(http.StatusForbidden, "403.html", Props{
+		Title:       "Not Authorized",
+		Description: "You are not authorized to view this page.",
 	})
 }
 
-//Forbidden returns a 403 error response
-func (c *Context) Forbidden() error {
-	if c.IsAjax() {
-		return c.JSON(http.StatusForbidden, Map{})
-	}
-
-	return c.Page(http.StatusForbidden, Props{
-		Page:        "Error/Error403.page",
-		Title:       "Forbidden",
-		Description: "You do not have access to this page.",
-	})
-}
-
-//NotFound returns a 404 error page
+//NotFound returns a 404 page
 func (c *Context) NotFound() error {
-	if c.IsAjax() {
-		return c.JSON(http.StatusNotFound, Map{})
-	}
-
-	return c.Page(http.StatusNotFound, Props{
-		Page:        "Error/Error404.page",
-		Title:       "Page Not Found",
+	return c.Render(http.StatusNotFound, "404.html", Props{
+		Title:       "Page not found",
 		Description: "The link you clicked may be broken or the page may have been removed.",
 	})
 }
 
-//Gone returns a 410 error page
+//Gone returns a 410 page
 func (c *Context) Gone() error {
-	return c.Page(http.StatusGone, Props{
-		Page:        "Error/Error410.page",
+	return c.Render(http.StatusGone, "410.html", Props{
 		Title:       "Expired",
 		Description: "The link you clicked has expired.",
 	})
@@ -273,8 +249,7 @@ func (c *Context) Failure(err error) error {
 		return c.NotFound()
 	}
 
-	if renderErr := c.Page(http.StatusInternalServerError, Props{
-		Page:        "Error/Error500.page",
+	if renderErr := c.Render(http.StatusInternalServerError, "500.html", Props{
 		Title:       "Shoot! Well, this is unexpected…",
 		Description: "An error has occurred and we're working to fix the problem!",
 	}); renderErr != nil {
@@ -290,7 +265,7 @@ func (c *Context) HandleValidation(result *validate.Result) error {
 	}
 
 	if !result.Authorized {
-		return c.Forbidden()
+		return c.Unauthorized()
 	}
 
 	return c.BadRequest(Map{
@@ -316,13 +291,18 @@ func (c *Context) BadRequest(dict Map) error {
 }
 
 //Page returns a page with given variables
-func (c *Context) Page(code int, props Props) error {
+func (c *Context) Page(props Props) error {
+	return c.Render(http.StatusOK, "index.html", props)
+}
+
+// Render renders a template with data and sends a text/html response with status
+func (c *Context) Render(code int, template string, props Props) error {
 	if c.IsAjax() {
 		return c.JSON(code, Map{})
 	}
 
 	buf := new(bytes.Buffer)
-	c.engine.renderer.Render(buf, code, props, c)
+	c.engine.renderer.Render(buf, code, template, props, c)
 
 	return c.Blob(code, UTF8HTMLContentType, buf.Bytes())
 }

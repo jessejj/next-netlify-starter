@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"net/http"
-
 	"github.com/getfider/fider/app/actions"
 	"github.com/getfider/fider/app/models/cmd"
 	"github.com/getfider/fider/app/models/query"
@@ -13,9 +11,9 @@ import (
 // GeneralSettingsPage is the general settings page
 func GeneralSettingsPage() web.HandlerFunc {
 	return func(c *web.Context) error {
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "Administration/pages/GeneralSettings.page",
-			Title: "General · Site Settings",
+		return c.Page(web.Props{
+			Title:     "General · Site Settings",
+			ChunkName: "GeneralSettings.page",
 		})
 	}
 }
@@ -23,9 +21,9 @@ func GeneralSettingsPage() web.HandlerFunc {
 // AdvancedSettingsPage is the advanced settings page
 func AdvancedSettingsPage() web.HandlerFunc {
 	return func(c *web.Context) error {
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "Administration/pages/AdvancedSettings.page",
-			Title: "Advanced · Site Settings",
+		return c.Page(web.Props{
+			Title:     "Advanced · Site Settings",
+			ChunkName: "AdvancedSettings.page",
 			Data: web.Map{
 				"customCSS": c.Tenant().CustomCSS,
 			},
@@ -126,9 +124,9 @@ func ManageMembers() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "Administration/pages/ManageMembers.page",
-			Title: "Manage Members · Site Settings",
+		return c.Page(web.Props{
+			Title:     "Manage Members · Site Settings",
+			ChunkName: "ManageMembers.page",
 			Data: web.Map{
 				"users": allUsers.Result,
 			},
@@ -144,9 +142,9 @@ func ManageAuthentication() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "Administration/pages/ManageAuthentication.page",
-			Title: "Authentication · Site Settings",
+		return c.Page(web.Props{
+			Title:     "Authentication · Site Settings",
+			ChunkName: "ManageAuthentication.page",
 			Data: web.Map{
 				"providers": listProviders.Result,
 			},

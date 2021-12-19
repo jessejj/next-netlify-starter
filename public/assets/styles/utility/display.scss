@@ -103,14 +103,6 @@
   justify-content: space-evenly;
 }
 
-.justify-center {
-  justify-content: center;
-}
-
-.justify-full > * {
-  flex: 1 1 0;
-}
-
 @each $i in 0, 1, 2, 4, 6, 8 {
   .flex-x.flex--spacing-#{$i} > * + * {
     margin-left: spacing($i);

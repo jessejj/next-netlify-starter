@@ -2,12 +2,12 @@ import "@fider/assets/styles/index.scss"
 
 import React, { Suspense } from "react"
 import ReactDOM from "react-dom"
-import { ErrorBoundary, Loader, ReadOnlyNotice, DevBanner } from "@fider/components"
+import { resolveRootComponent } from "@fider/router"
+import { Header, ErrorBoundary, Loader } from "@fider/components"
 import { classSet, Fider, FiderContext, actions, activateI18N } from "@fider/services"
 
 import { I18n } from "@lingui/core"
 import { I18nProvider } from "@lingui/react"
-import { AsyncPage } from "./AsyncPages"
 
 const Loading = () => (
   <div className="page">
@@ -37,20 +37,18 @@ window.addEventListener("error", (evt: ErrorEvent) => {
 })
 
 const bootstrapApp = (i18n: I18n) => {
-  const component = AsyncPage(fider.session.page)
+  const config = resolveRootComponent(location.pathname)
   document.body.className = classSet({
     "is-authenticated": fider.session.isAuthenticated,
     "is-staff": fider.session.isAuthenticated && fider.session.user.isCollaborator,
   })
-
   ReactDOM.render(
     <React.StrictMode>
       <ErrorBoundary onError={logProductionError}>
         <I18nProvider i18n={i18n}>
           <FiderContext.Provider value={fider}>
-            <DevBanner />
-            <ReadOnlyNotice />
-            <Suspense fallback={<Loading />}>{React.createElement(component, fider.session.props)}</Suspense>
+            {config.showHeader && <Header />}
+            <Suspense fallback={<Loading />}>{React.createElement(config.component, fider.session.props)}</Suspense>
           </FiderContext.Provider>
         </I18nProvider>
       </ErrorBoundary>

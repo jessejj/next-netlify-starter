@@ -22,10 +22,10 @@ import (
 func SignInPage() web.HandlerFunc {
 	return func(c *web.Context) error {
 
-		if c.Tenant().IsPrivate {
-			return c.Page(http.StatusOK, web.Props{
-				Page:  "SignIn/SignIn.page",
-				Title: "Sign in",
+		if c.Tenant().IsPrivate || c.Tenant().Status == enum.TenantLocked {
+			return c.Page(web.Props{
+				Title:     "Sign in",
+				ChunkName: "SignIn.page",
 			})
 		}
 
@@ -36,10 +36,9 @@ func SignInPage() web.HandlerFunc {
 // NotInvitedPage renders the not invited page
 func NotInvitedPage() web.HandlerFunc {
 	return func(c *web.Context) error {
-		return c.Page(http.StatusForbidden, web.Props{
-			Page:        "Error/NotInvited.page",
+		return c.Render(http.StatusForbidden, "not-invited.html", web.Props{
 			Title:       "Not Invited",
-			Description: "We couldn't find an account for your email address.",
+			Description: "We couldn't find your account for your email address.",
 		})
 	}
 }
@@ -70,38 +69,63 @@ func SignInByEmail() web.HandlerFunc {
 // VerifySignInKey checks if verify key is correct and sign in user
 func VerifySignInKey(kind enum.EmailVerificationKind) web.HandlerFunc {
 	return func(c *web.Context) error {
-		key := c.QueryParam("k")
-		result, err := validateKey(kind, key, c)
+		result, err := validateKey(kind, c)
 		if result == nil {
 			return err
 		}
 
-		userByEmail := &query.GetUserByEmail{Email: result.Email}
-		err = bus.Dispatch(c, userByEmail)
-		if err != nil {
-			if errors.Cause(err) == app.ErrNotFound {
-				if kind == enum.EmailVerificationKindSignIn && c.Tenant().IsPrivate {
-					return NotInvitedPage()(c)
-				}
-
-				return c.Page(http.StatusOK, web.Props{
-					Page:  "SignIn/CompleteSignInProfile.page",
-					Title: "Complete Sign In Profile",
-					Data: web.Map{
-						"kind": kind,
-						"k":    key,
-					},
-				})
+		var user *entity.User
+		if kind == enum.EmailVerificationKindSignUp && c.Tenant().Status == enum.TenantPending {
+			if err = bus.Dispatch(c, &cmd.ActivateTenant{TenantID: c.Tenant().ID}); err != nil {
+				return c.Failure(err)
 			}
-			return c.Failure(err)
+
+			user = &entity.User{
+				Name:   result.Name,
+				Email:  result.Email,
+				Tenant: c.Tenant(),
+				Role:   enum.RoleAdministrator,
+			}
+
+			if err = bus.Dispatch(c, &cmd.RegisterUser{User: user}); err != nil {
+				return c.Failure(err)
+			}
+		} else if kind == enum.EmailVerificationKindSignIn {
+			userByEmail := &query.GetUserByEmail{Email: result.Email}
+			err = bus.Dispatch(c, userByEmail)
+			user = userByEmail.Result
+			if err != nil {
+				if errors.Cause(err) == app.ErrNotFound {
+					if c.Tenant().IsPrivate {
+						return NotInvitedPage()(c)
+					}
+					return Index()(c)
+				}
+				return c.Failure(err)
+			}
+		} else if kind == enum.EmailVerificationKindUserInvitation {
+			userByEmail := &query.GetUserByEmail{Email: result.Email}
+			err = bus.Dispatch(c, userByEmail)
+			user = userByEmail.Result
+			if err != nil {
+				if errors.Cause(err) == app.ErrNotFound {
+					if c.Tenant().IsPrivate {
+						return SignInPage()(c)
+					}
+					return Index()(c)
+				}
+				return c.Failure(err)
+			}
+		} else {
+			return c.NotFound()
 		}
 
-		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: key})
+		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: result.Key})
 		if err != nil {
 			return c.Failure(err)
 		}
 
-		webutil.AddAuthUserCookie(c, userByEmail.Result)
+		webutil.AddAuthUserCookie(c, user)
 
 		return c.Redirect(c.BaseURL())
 	}
@@ -115,20 +139,14 @@ func CompleteSignInProfile() web.HandlerFunc {
 			return c.HandleValidation(result)
 		}
 
-		result, err := validateKey(action.Kind, action.Key, c)
-		if result == nil {
-			return err
-		}
-
-		err = bus.Dispatch(c, &query.GetUserByEmail{Email: result.Email})
+		err := bus.Dispatch(c, &query.GetUserByEmail{Email: action.Email})
 		if errors.Cause(err) != app.ErrNotFound {
-			// Not possible to create user that already exists
-			return c.BadRequest(web.Map{})
+			return c.Ok(web.Map{})
 		}
 
 		user := &entity.User{
 			Name:   action.Name,
-			Email:  result.Email,
+			Email:  action.Email,
 			Tenant: c.Tenant(),
 			Role:   enum.RoleVisitor,
 		}

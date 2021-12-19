@@ -17,16 +17,16 @@ var ptBRContext = context.WithValue(emptyContext, app.LocaleCtxKey, "pt-BR")
 func TestValidMessage(t *testing.T) {
 	RegisterT(t)
 
-	key := "email.greetings"
+	key := "error.pagenotfound.title"
 
 	translated := i18n.T(emptyContext, key)
-	Expect(translated).Equals("Hello!")
+	Expect(translated).Equals("Page not found")
 
 	translated = i18n.T(enContext, key)
-	Expect(translated).Equals("Hello!")
+	Expect(translated).Equals("Page not found")
 
 	translated = i18n.T(ptBRContext, key)
-	Expect(translated).Equals("Olá!")
+	Expect(translated).Equals("Página não encontrada")
 }
 
 func TestEnglish_ValidMessage_WithParams(t *testing.T) {

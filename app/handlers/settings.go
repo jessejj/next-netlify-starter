@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"net/http"
 	"time"
 
 	"github.com/getfider/fider/app/models/enum"
@@ -42,8 +41,7 @@ func ChangeUserEmail() web.HandlerFunc {
 // VerifyChangeEmailKey checks if key is correct and update user's email
 func VerifyChangeEmailKey() web.HandlerFunc {
 	return func(c *web.Context) error {
-		key := c.QueryParam("k")
-		result, err := validateKey(enum.EmailVerificationKindChangeEmail, key, c)
+		result, err := validateKey(enum.EmailVerificationKindChangeEmail, c)
 		if result == nil {
 			return err
 		}
@@ -60,11 +58,10 @@ func VerifyChangeEmailKey() web.HandlerFunc {
 			return c.Failure(err)
 		}
 
-		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: key})
+		err = bus.Dispatch(c, &cmd.SetKeyAsVerified{Key: result.Key})
 		if err != nil {
 			return c.Failure(err)
 		}
-
 		return c.Redirect(c.BaseURL() + "/settings")
 	}
 }
@@ -77,9 +74,9 @@ func UserSettings() web.HandlerFunc {
 			return err
 		}
 
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "MySettings/MySettings.page",
-			Title: "Settings",
+		return c.Page(web.Props{
+			Title:     "Settings",
+			ChunkName: "MySettings.page",
 			Data: web.Map{
 				"userSettings": settings.Result,
 			},

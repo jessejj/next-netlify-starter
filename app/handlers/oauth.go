@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"fmt"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -41,9 +40,9 @@ func OAuthEcho() web.HandlerFunc {
 		rawProfile := &query.GetOAuthRawProfile{Provider: provider, Code: code}
 		err := bus.Dispatch(c, rawProfile)
 		if err != nil {
-			return c.Page(http.StatusOK, web.Props{
-				Page:  "OAuthEcho/OAuthEcho.page",
-				Title: "OAuth Test Page",
+			return c.Page(web.Props{
+				Title:     "OAuth Test Page",
+				ChunkName: "OAuthEcho.page",
 				Data: web.Map{
 					"err": errors.Cause(err).Error(),
 				},
@@ -53,9 +52,9 @@ func OAuthEcho() web.HandlerFunc {
 		parseRawProfile := &cmd.ParseOAuthRawProfile{Provider: provider, Body: rawProfile.Result}
 		_ = bus.Dispatch(c, parseRawProfile)
 
-		return c.Page(http.StatusOK, web.Props{
-			Page:  "OAuthEcho/OAuthEcho.page",
-			Title: "OAuth Test Page",
+		return c.Page(web.Props{
+			Title:     "OAuth Test Page",
+			ChunkName: "OAuthEcho.page",
 			Data: web.Map{
 				"body":    rawProfile.Result,
 				"profile": parseRawProfile.Result,
@@ -185,7 +184,7 @@ func OAuthCallback() web.HandlerFunc {
 				OAuthName:     oauthUser.Result.Name,
 				OAuthEmail:    oauthUser.Result.Email,
 				Metadata: jwt.Metadata{
-					ExpiresAt: jwt.Time(time.Now().Add(10 * time.Minute)),
+					ExpiresAt: time.Now().Add(10 * time.Minute).Unix(),
 				},
 			}
 

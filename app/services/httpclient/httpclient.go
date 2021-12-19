@@ -12,12 +12,7 @@ import (
 )
 
 func init() {
-	http.DefaultClient = &http.Client{
-		Timeout: 30 * time.Second,
-		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			return http.ErrUseLastResponse
-		},
-	}
+	http.DefaultClient.Timeout = 30 * time.Second
 	bus.Register(Service{})
 }
 
@@ -66,6 +61,5 @@ func requestHandler(ctx context.Context, c *cmd.HTTPRequest) error {
 
 	c.ResponseBody = respBody
 	c.ResponseStatusCode = res.StatusCode
-	c.ResponseHeader = res.Header
 	return nil
 }

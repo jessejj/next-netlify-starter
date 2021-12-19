@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/getfider/fider/app/models/cmd"
-	"github.com/getfider/fider/app/pkg/env"
 	"github.com/getfider/fider/app/pkg/errors"
 )
 
@@ -26,11 +25,6 @@ var listeners = make(map[string][]HandlerFunc)
 var services = make([]Service, 0)
 var busLock = &sync.RWMutex{}
 
-// We only keep counters during unit tests to avoid unnecessary overhead
-var shouldCount = env.IsTest()
-var handlersCallCounter = make(map[string]int)
-var counterLock = &sync.RWMutex{}
-
 func Register(svc Service) {
 	busLock.Lock()
 	defer busLock.Unlock()
@@ -45,8 +39,6 @@ func Reset() {
 	services = make([]Service, 0)
 	handlers = make(map[string]HandlerFunc)
 	listeners = make(map[string][]HandlerFunc)
-
-	handlersCallCounter = make(map[string]int)
 }
 
 // Initializes the bus services that have been registered via bus.Register
@@ -107,7 +99,13 @@ func Dispatch(ctx context.Context, msgs ...Msg) error {
 	defer busLock.RUnlock()
 
 	for _, msg := range msgs {
-		key := getKey(msg)
+		typeof := reflect.TypeOf(msg)
+		if typeof.Kind() != reflect.Ptr {
+			panic(fmt.Errorf("'%s' is not a pointer", keyForElement(typeof)))
+		}
+
+		elem := typeof.Elem()
+		key := keyForElement(elem)
 		handler := handlers[key]
 		if handler == nil {
 			panic(fmt.Errorf("could not find handler for '%s'.", key))
@@ -116,12 +114,6 @@ func Dispatch(ctx context.Context, msgs ...Msg) error {
 		var params = []reflect.Value{
 			reflect.ValueOf(ctx),
 			reflect.ValueOf(msg),
-		}
-
-		if shouldCount {
-			counterLock.Lock()
-			handlersCallCounter[key]++
-			counterLock.Unlock()
 		}
 
 		ret := reflect.ValueOf(handler).Call(params)
@@ -142,7 +134,13 @@ func Publish(ctx context.Context, msgs ...Msg) {
 	defer busLock.RUnlock()
 
 	for _, msg := range msgs {
-		key := getKey(msg)
+		typeof := reflect.TypeOf(msg)
+		if typeof.Kind() != reflect.Ptr {
+			panic(fmt.Errorf("'%s' is not a pointer", keyForElement(typeof)))
+		}
+
+		elem := typeof.Elem()
+		key := keyForElement(elem)
 		msgListeners := listeners[key]
 
 		var params = []reflect.Value{
@@ -161,23 +159,6 @@ func Publish(ctx context.Context, msgs ...Msg) {
 			}
 		}
 	}
-}
-
-// GetCallCount returns	the number of times a handler has been called
-// Only available during unit tests
-func GetCallCount(msg Msg) int {
-	key := getKey(msg)
-	return handlersCallCounter[key]
-}
-
-func getKey(msg Msg) string {
-	typeof := reflect.TypeOf(msg)
-	if typeof.Kind() != reflect.Ptr {
-		panic(fmt.Errorf("'%s' is not a pointer", keyForElement(typeof)))
-	}
-
-	elem := typeof.Elem()
-	return keyForElement(elem)
 }
 
 func keyForElement(t reflect.Type) string {

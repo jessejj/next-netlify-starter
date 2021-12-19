@@ -2,11 +2,8 @@ package tpl
 
 import (
 	"errors"
-	"fmt"
 	"html/template"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/getfider/fider/app/pkg/crypto"
 	"github.com/getfider/fider/app/pkg/i18n"
@@ -16,7 +13,7 @@ import (
 
 var strictHtmlPolicy = bluemonday.NewPolicy()
 
-var templateFunctions = map[string]interface{}{
+var templateFunctions = template.FuncMap{
 	"stripHtml": func(input string) string {
 		return strictHtmlPolicy.Sanitize(input)
 	},
@@ -56,24 +53,4 @@ var templateFunctions = map[string]interface{}{
 		}
 		return dict
 	},
-	"format": func(format string, date time.Time) string {
-		return date.Format(format)
-	},
-	"quote": func(text interface{}) string {
-		return quote(text)
-	},
-	"escape": func(text interface{}) string {
-		quoted := quote(text)
-		return quoted[1 : len(quoted)-1]
-	},
-	"truncate": func(input string, length int) string {
-		if len([]rune(input)) > length {
-			input = string([]rune(input)[:length-3]) + "..."
-		}
-		return input
-	},
-}
-
-func quote(text interface{}) string {
-	return strconv.Quote(fmt.Sprintf("%v", text))
 }

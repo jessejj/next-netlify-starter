@@ -24,7 +24,7 @@ var avatarTypesName = map[string]AvatarType{
 	"custom":   AvatarTypeCustom,
 }
 
-// String returns the string version of the avatar type
+// String returns the string version of the user status
 func (t AvatarType) String() string {
 	return avatarTypesIDs[t]
 }

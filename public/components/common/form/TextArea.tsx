@@ -13,11 +13,9 @@ interface TextAreaProps {
   disabled?: boolean
   minRows?: number
   placeholder?: string
-  afterLabel?: JSX.Element
   onChange?: (value: string) => void
   inputRef?: React.MutableRefObject<any>
   onFocus?: React.FocusEventHandler<HTMLTextAreaElement>
-  className?: string
 }
 
 export const TextArea: React.FunctionComponent<TextAreaProps> = (props) => {
@@ -32,17 +30,11 @@ export const TextArea: React.FunctionComponent<TextAreaProps> = (props) => {
       {(ctx) => (
         <>
           <div className="c-form-field">
-            {!!props.label && (
-              <label htmlFor={`input-${props.field}`}>
-                {props.label}
-                {props.afterLabel}
-              </label>
-            )}
+            {!!props.label && <label htmlFor={`input-${props.field}`}>{props.label}</label>}
             <Textarea
               className={classSet({
                 "c-textarea": true,
                 "c-textarea--error": hasError(props.field, ctx.error),
-                [props.className || ""]: props.className,
               })}
               id={`input-${props.field}`}
               disabled={props.disabled}

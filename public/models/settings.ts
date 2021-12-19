@@ -16,7 +16,6 @@ export interface SystemSettings {
   environment: string
   domain: string
   hasLegal: boolean
-  isBillingEnabled: boolean
   baseURL: string
   assetsURL: string
   oauth: OAuthProviderOption[]
@@ -55,11 +54,4 @@ export interface ImageUpload {
     contentType?: string
   }
   remove: boolean
-}
-
-export enum EmailVerificationKind {
-  SignIn = 1,
-  SignUp = 2,
-  ChangeEmail = 3,
-  UserInvitation = 4,
 }

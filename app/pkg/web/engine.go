@@ -28,12 +28,12 @@ import (
 var (
 	cspBase    = "base-uri 'self'"
 	cspDefault = "default-src 'self'"
-	cspStyle   = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.paddle.com %[2]s"
-	cspScript  = "script-src 'self' 'nonce-%[1]s' https://www.google-analytics.com https://*.paddle.com %[2]s"
+	cspStyle   = "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com %[2]s"
+	cspScript  = "script-src 'self' 'nonce-%[1]s' https://www.google-analytics.com %[2]s"
 	cspFont    = "font-src 'self' https://fonts.gstatic.com data: %[2]s"
 	cspImage   = "img-src 'self' https: data: %[2]s"
 	cspObject  = "object-src 'none'"
-	cspFrame   = "frame-src 'self' https://*.paddle.com"
+	cspFrame   = "frame-src 'self'"
 	cspMedia   = "media-src 'none'"
 	cspConnect = "connect-src 'self' https://www.google-analytics.com %[2]s"
 
@@ -124,7 +124,7 @@ func (e *Engine) Start(address string) {
 		TLSConfig:    getDefaultTLSConfig(env.Config.TLS.Automatic),
 	}
 
-	for i := 0; i < runtime.NumCPU(); i++ {
+	for i := 0; i < runtime.NumCPU()*2; i++ {
 		go e.Worker().Run(strconv.Itoa(i))
 	}
 

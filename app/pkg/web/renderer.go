@@ -132,7 +132,7 @@ func getClientAssets(assets []distAsset) *clientAssets {
 }
 
 //Render a template based on parameters
-func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context) {
+func (r *Renderer) Render(w io.Writer, statusCode int, templateName string, props Props, ctx *Context) {
 	var err error
 
 	if r.assets == nil || env.IsDevelopment() {
@@ -170,12 +170,9 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 
 	locale := i18n.GetLocale(ctx)
 	localeChunkName := fmt.Sprintf("locale-%s-client-json", locale)
-
-	// webpack replaces "/" and "." with "-", so we do the same here
-	pageChunkName := strings.ReplaceAll(strings.ReplaceAll(props.Page, ".", "-"), "/", "-")
 	private["preloadAssets"] = []*clientAssets{
 		r.chunkedAssets[localeChunkName],
-		r.chunkedAssets[pageChunkName],
+		r.chunkedAssets[props.ChunkName],
 	}
 
 	if tenant == nil || tenant.LogoBlobKey == "" {
@@ -192,29 +189,27 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 	oauthProviders := &query.ListActiveOAuthProviders{
 		Result: make([]*dto.OAuthProviderOption, 0),
 	}
-	if !ctx.IsAuthenticated() && statusCode >= 200 && statusCode < 500 {
+	if !ctx.IsAuthenticated() && statusCode >= 200 && statusCode < 300 {
 		err = bus.Dispatch(ctx, oauthProviders)
 		if err != nil {
 			panic(errors.Wrap(err, "failed to get list of providers"))
 		}
 	}
 
-	public["page"] = props.Page
 	public["contextID"] = ctx.ContextID()
 	public["sessionID"] = ctx.SessionID()
 	public["tenant"] = tenant
 	public["props"] = props.Data
 	public["settings"] = &Map{
-		"mode":             env.Config.HostMode,
-		"locale":           locale,
-		"environment":      env.Config.Environment,
-		"googleAnalytics":  env.Config.GoogleAnalytics,
-		"domain":           env.MultiTenantDomain(),
-		"hasLegal":         env.HasLegal(),
-		"isBillingEnabled": env.IsBillingEnabled(),
-		"baseURL":          ctx.BaseURL(),
-		"assetsURL":        AssetsURL(ctx, ""),
-		"oauth":            oauthProviders.Result,
+		"mode":            env.Config.HostMode,
+		"locale":          locale,
+		"environment":     env.Config.Environment,
+		"googleAnalytics": env.Config.GoogleAnalytics,
+		"domain":          env.MultiTenantDomain(),
+		"hasLegal":        env.HasLegal(),
+		"baseURL":         ctx.BaseURL(),
+		"assetsURL":       AssetsURL(ctx, ""),
+		"oauth":           oauthProviders.Result,
 	}
 
 	if ctx.IsAuthenticated() {
@@ -233,9 +228,8 @@ func (r *Renderer) Render(w io.Writer, statusCode int, props Props, ctx *Context
 		}
 	}
 
-	templateName := "index.html"
-
-	if ctx.Request.IsCrawler() {
+	// Only index.html template uses React, other templates are already SSR
+	if ctx.Request.IsCrawler() && templateName == "index.html" {
 		html, err := r.reactRenderer.Render(ctx.Request.URL, public)
 		if err != nil {
 			log.Errorf(ctx, "Failed to render react page: @{Error}", dto.Props{

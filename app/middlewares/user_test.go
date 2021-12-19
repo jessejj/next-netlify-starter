@@ -94,23 +94,25 @@ func TestUser_Blocked(t *testing.T) {
 			return c.String(http.StatusOK, c.User().Name)
 		})
 
-	Expect(status).Equals(http.StatusUnauthorized)
+	Expect(status).Equals(http.StatusForbidden)
 }
 
-func TestUser_LockedTenant_ShouldAllowSignIn(t *testing.T) {
+func TestUser_LockedTenant_Administrator(t *testing.T) {
 	RegisterT(t)
 
 	server := mock.NewServer()
 	mock.DemoTenant.Status = enum.TenantLocked
 	token, _ := jwt.Encode(jwt.FiderClaims{
-		UserID:   mock.AryaStark.ID,
-		UserName: mock.AryaStark.Name,
+		UserID:   mock.JonSnow.ID,
+		UserName: mock.JonSnow.Name,
 	})
 
 	bus.AddHandler(func(ctx context.Context, q *query.GetUserByID) error {
-		Expect(q.UserID).Equals(mock.AryaStark.ID)
-		q.Result = mock.AryaStark
-		return nil
+		if q.UserID == mock.JonSnow.ID {
+			q.Result = mock.JonSnow
+			return nil
+		}
+		return app.ErrNotFound
 	})
 
 	server.Use(middlewares.User())
@@ -123,7 +125,37 @@ func TestUser_LockedTenant_ShouldAllowSignIn(t *testing.T) {
 		})
 
 	Expect(status).Equals(http.StatusOK)
-	Expect(response.Body.String()).Equals("Arya Stark")
+	Expect(response.Body.String()).Equals("Jon Snow")
+}
+
+func TestUser_LockedTenant_Visitor(t *testing.T) {
+	RegisterT(t)
+
+	server := mock.NewServer()
+	mock.DemoTenant.Status = enum.TenantLocked
+	token, _ := jwt.Encode(jwt.FiderClaims{
+		UserID:   mock.AryaStark.ID,
+		UserName: mock.AryaStark.Name,
+	})
+
+	bus.AddHandler(func(ctx context.Context, q *query.GetUserByID) error {
+		if q.UserID == mock.AryaStark.ID {
+			q.Result = mock.AryaStark
+			return nil
+		}
+		return app.ErrNotFound
+	})
+
+	server.Use(middlewares.User())
+	status, _ := server.
+		OnTenant(mock.DemoTenant).
+		AddHeader("Accept", "application/json").
+		AddCookie(web.CookieAuthName, token).
+		Execute(func(c *web.Context) error {
+			return c.String(http.StatusOK, c.User().Name)
+		})
+
+	Expect(status).Equals(http.StatusForbidden)
 }
 
 func TestUser_WithCookie_InvalidUser(t *testing.T) {

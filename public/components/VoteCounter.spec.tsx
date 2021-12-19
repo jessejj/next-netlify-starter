@@ -39,11 +39,7 @@ describe("<VoteCounter />", () => {
     post.hasVoted = true
     post.votesCount = 9
 
-    const { container } = render(
-      <FiderContext.Provider value={fiderMock.authenticated()}>
-        <VoteCounter post={post} />
-      </FiderContext.Provider>
-    )
+    const { container } = render(<VoteCounter post={post} />)
     const button = container.querySelector("button")
 
     expect(button).toHaveTextContent("9")
@@ -54,11 +50,7 @@ describe("<VoteCounter />", () => {
   test("when hasVoted === false", () => {
     post.hasVoted = false
     post.votesCount = 2
-    const { container } = render(
-      <FiderContext.Provider value={fiderMock.authenticated()}>
-        <VoteCounter post={post} />
-      </FiderContext.Provider>
-    )
+    const { container } = render(<VoteCounter post={post} />)
     const button = container.querySelector("button")
     expect(button).toHaveTextContent("2")
     expect(button).not.toHaveClass("c-vote-counter__button--voted")
@@ -67,11 +59,7 @@ describe("<VoteCounter />", () => {
 
   test("when post is closed", () => {
     post.status = PostStatus.Completed.value
-    const { container } = render(
-      <FiderContext.Provider value={fiderMock.authenticated()}>
-        <VoteCounter post={post} />
-      </FiderContext.Provider>
-    )
+    const { container } = render(<VoteCounter post={post} />)
     const button = container.querySelector("button")
     expect(button).toHaveTextContent("5")
     expect(button).toHaveClass("c-vote-counter__button--disabled")
@@ -95,6 +83,8 @@ describe("<VoteCounter />", () => {
   })
 
   test("click when authenticated and hasVoted === false", async () => {
+    fiderMock.authenticated()
+
     const mock = httpMock.alwaysOk()
 
     const { container } = render(
@@ -116,6 +106,7 @@ describe("<VoteCounter />", () => {
 
   test("click when authenticated and hasVoted === true", async () => {
     post.hasVoted = true
+    fiderMock.authenticated()
 
     const mock = httpMock.alwaysOk()
 
