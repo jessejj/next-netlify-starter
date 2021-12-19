@@ -1,0 +1,31 @@
+@import "~@fider/assets/styles/variables.scss";
+
+#p-show-post {
+  .post-header {
+    flex-grow: 1;
+  }
+
+  @include media("lg") {
+    .p-show-post {
+      display: grid;
+      gap: spacing(4);
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      grid-template-rows: auto;
+      grid-template-areas:
+        "Header Header Header Action"
+        "Discussion Discussion Discussion Action";
+
+      &__header-col {
+        grid-area: Header;
+      }
+
+      &__action-col {
+        grid-area: Action;
+      }
+
+      &__discussion_col {
+        grid-area: Discussion;
+      }
+    }
+  }
+}
